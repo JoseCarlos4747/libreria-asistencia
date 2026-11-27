@@ -5,11 +5,12 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 const config = {
     server: 'localhost',
     database: 'LibreriaUniAsistencia',
-    driver: 'ODBC Driver 17 for SQL Server', // Asegúrate de que este sea el driver que usaste
+    driver: 'ODBC Driver 17 for SQL Server', 
     options: {
         trustedConnection: true,
         trustServerCertificate: true,
@@ -17,7 +18,7 @@ const config = {
     }
 };
 
-// RUTA 1: Login (Simulado, buscando en tu tabla)
+// LOGIN
 app.post('/api/login', async (req, res) => {
     const { correo } = req.body;
     try {
@@ -36,18 +37,45 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// RUTA 2: Registrar Entrada (Empleada)
+// REGISTRAR ENTRADA
 app.post('/api/entrada', async (req, res) => {
-    const { usuarioID, sucursalID } = req.body;
+    const { usuarioID, sucursalID, modoDemo } = req.body;
     try {
         const pool = await sql.connect(config);
         
-        // Obtener la hora actual del servidor SQL (cumple RN-01)
-        const timeResult = await pool.request().query("SELECT FORMAT(GETDATE(), 'HH:mm:ss') as HoraActual");
-        const horaServidor = timeResult.recordset[0].HoraActual;
+        // 1. Obtener el horario del empleado (Forzando formato de texto en SQL)
+        const userResult = await pool.request()
+            .input('id', sql.Int, usuarioID)
+            .query("SELECT CONVERT(varchar, HoraEntrada, 108) AS HoraEntrada FROM Usuarios WHERE UsuarioID = @id");
+        
+        const horarioOficial = userResult.recordset[0].HoraEntrada;
+        
+        // 2. Calcular hora límite (5 minutos de tolerancia)
+        let horaLimiteStr = '08:05:00'; 
+        if (typeof horarioOficial === 'string') {
+            const [h, m, s] = horarioOficial.split(':');
+            const horaLimite = new Date();
+            horaLimite.setHours(parseInt(h), parseInt(m) + 5, 0); 
+            horaLimiteStr = horaLimite.toTimeString().split(' ')[0];
+        }
 
-        // Regla de negocio: Tardanza si es después de las 08:05:00
-        const estadoEntrada = horaServidor > '08:05:00' ? 'Tardanza' : 'Puntual';
+        // 3. Obtener hora (Modo Demo simula que llegó a tiempo)
+        let horaServidor;
+        if (modoDemo) {
+            const horaSimulada = new Date();
+            // Si horarioOficial es string, simulamos que llegó 1 hora antes
+            if (typeof horarioOficial === 'string') {
+                const [h, m, s] = horarioOficial.split(':');
+                horaSimulada.setHours(parseInt(h) - 1, 45, 0); 
+            }
+            horaServidor = horaSimulada.toTimeString().split(' ')[0];
+        } else {
+            const timeResult = await pool.request().query("SELECT FORMAT(GETDATE(), 'HH:mm:ss') as HoraActual");
+            horaServidor = timeResult.recordset[0].HoraActual;
+        }
+
+        // 4. Evaluar si es tardanza
+        const estadoEntrada = horaServidor > horaLimiteStr ? 'Tardanza' : 'Puntual';
 
         await pool.request()
             .input('usuarioID', sql.Int, usuarioID)
@@ -65,15 +93,63 @@ app.post('/api/entrada', async (req, res) => {
     }
 });
 
-// RUTA 3: Panel de la Dueña (Ver asistencias del día)
+// REGISTRAR SALIDA
+app.post('/api/salida', async (req, res) => {
+    const { usuarioID, modoDemo } = req.body;
+    try {
+        const pool = await sql.connect(config);
+        
+        const userResult = await pool.request()
+            .input('id', sql.Int, usuarioID)
+            .query("SELECT CONVERT(varchar, HoraSalida, 108) AS HoraSalida FROM Usuarios WHERE UsuarioID = @id");
+        const horarioOficial = userResult.recordset[0].HoraSalida;
+        
+        let horaServidor;
+        if (modoDemo) {
+            if (typeof horarioOficial === 'string') {
+                const [h, m, s] = horarioOficial.split(':');
+                const horaSimulada = new Date();
+                horaSimulada.setHours(parseInt(h) + 1, 15, 0); // Simula salida 1 hora después
+                horaServidor = horaSimulada.toTimeString().split(' ')[0];
+            }
+        } else {
+            const timeResult = await pool.request().query("SELECT FORMAT(GETDATE(), 'HH:mm:ss') as HoraActual"); 
+            horaServidor = timeResult.recordset[0].HoraActual;
+        }
+
+        const estadoSalida = horaServidor < horarioOficial ? 'Anticipada' : 'Normal';
+
+        const result = await pool.request()
+            .input('usuarioID', sql.Int, usuarioID)
+            .input('hora', sql.Time, horaServidor)
+            .input('estado', sql.NVarChar, estadoSalida)
+            .query(`
+                UPDATE Asistencias 
+                SET HoraSalida = @hora, EstadoSalida = @estado
+                WHERE UsuarioID = @usuarioID AND Fecha = CAST(GETDATE() AS DATE) AND HoraSalida IS NULL
+            `);
+
+        if (result.rowsAffected[0] > 0) {
+            res.json({ ok: true, mensaje: 'Salida registrada', hora: horaServidor, estado: estadoSalida });
+        } else {
+            res.status(400).json({ ok: false, error: 'No hay entrada registrada hoy o ya marcaste salida.' });
+        }
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// PANEL DE LA DUEÑA
 app.get('/api/panel', async (req, res) => {
     try {
         const pool = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT A.AsistenciaID, U.NombreCompleto, S.Nombre AS Sucursal, 
-                   FORMAT(A.HoraEntrada, 'hh:mm tt') AS Entrada, 
-                   FORMAT(A.HoraSalida, 'hh:mm tt') AS Salida,
-                   A.EstadoEntrada, A.EstadoSalida
+                   CONVERT(varchar, A.HoraEntrada, 108) AS HoraEntrada, 
+                   CONVERT(varchar, A.HoraSalida, 108) AS HoraSalida,
+                   A.EstadoEntrada, A.EstadoSalida,
+                   CONVERT(varchar, U.HoraEntrada, 108) AS HorarioOficialEntrada,
+                   CONVERT(varchar, U.HoraSalida, 108) AS HorarioOficialSalida
             FROM Asistencias A
             JOIN Usuarios U ON A.UsuarioID = U.UsuarioID
             JOIN Sucursales S ON A.SucursalID = S.SucursalID
@@ -86,4 +162,4 @@ app.get('/api/panel', async (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('Servidor en http://localhost:3000'));
+app.listen(3000, '0.0.0.0', () => console.log('Servidor en http://localhost:3000'));

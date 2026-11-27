@@ -24,30 +24,38 @@
     </div>
 
     <script>
-        const usuario = JSON.parse(localStorage.getItem('usuario'));
-        if (!usuario || usuario.Rol !== 'Empleado') window.location.href = 'login.html';
-        document.getElementById('nombreUsuario').innerText = `Hola, ${usuario.NombreCompleto}`;
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
+    if (!usuario || usuario.Rol !== 'Empleado') window.location.href = 'login.html';
+    document.getElementById('nombreUsuario').innerText = `Hola, ${usuario.NombreCompleto}`;
 
-        async function marcar(tipo) {
-            // Aquí en el futuro conectarías el GPS y el QR.
-            // Por ahora enviamos los datos directos.
-            const res = await fetch(`/api/${tipo}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuarioID: usuario.UsuarioID, sucursalID: usuario.SucursalID })
-            });
-            const data = await res.json();
-            if(data.ok) {
-                document.getElementById('mensaje').innerHTML = `<div class="alert alert-info">${data.mensaje} a las ${data.hora} - ${data.estado}</div>`;
-            } else {
-                document.getElementById('mensaje').innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
-            }
+    async function marcar(tipo) {
+        // modoDemo: true fuerza a que el servidor simule la hora correcta
+        const res = await fetch(`/api/${tipo}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                usuarioID: usuario.UsuarioID, 
+                sucursalID: usuario.SucursalID,
+                modoDemo: true // <--- ESTO ES LA MAGIA PARA TU PRESENTACIÓN
+            })
+        });
+        const data = await res.json();
+        if(data.ok) {
+            document.getElementById('mensaje').innerHTML = `
+                <div class="alert alert-info">
+                    <strong>${data.mensaje}</strong><br>
+                    Hora: ${data.hora}<br>
+                    Estado: <span class="badge bg-${data.estado === 'Puntual' || data.estado === 'Normal' ? 'success' : 'danger'}">${data.estado}</span>
+                </div>`;
+        } else {
+            document.getElementById('mensaje').innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
         }
+    }
 
-        function logout() {
-            localStorage.removeItem('usuario');
-            window.location.href = 'login.html';
-        }
-    </script>
+    function logout() {
+        localStorage.removeItem('usuario');
+        window.location.href = 'login.html';
+    }
+</script>
 </body>
 </html>

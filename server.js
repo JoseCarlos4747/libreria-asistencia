@@ -80,11 +80,11 @@ app.post('/api/entrada', async (req, res) => {
         await pool.request()
             .input('usuarioID', sql.Int, usuarioID)
             .input('sucursalID', sql.Int, sucursalID)
-            .input('hora', sql.Time, horaServidor)
+            .input('hora', sql.VarChar, horaServidor) // <-- CAMBIO AQUÍ
             .input('estado', sql.NVarChar, estadoEntrada)
             .query(`
                 INSERT INTO Asistencias (UsuarioID, SucursalID, Fecha, HoraEntrada, EstadoEntrada)
-                VALUES (@usuarioID, @sucursalID, CAST(GETDATE() AS DATE), @hora, @estado)
+                VALUES (@usuarioID, @sucursalID, CAST(GETDATE() AS DATE), CAST(@hora AS TIME), @estado)
             `);
 
         res.json({ ok: true, mensaje: 'Entrada registrada', hora: horaServidor, estado: estadoEntrada });
@@ -119,13 +119,13 @@ app.post('/api/salida', async (req, res) => {
 
         const estadoSalida = horaServidor < horarioOficial ? 'Anticipada' : 'Normal';
 
-        const result = await pool.request()
+            const result = await pool.request()
             .input('usuarioID', sql.Int, usuarioID)
-            .input('hora', sql.Time, horaServidor)
+            .input('hora', sql.VarChar, horaServidor) // <-- CAMBIO AQUÍ
             .input('estado', sql.NVarChar, estadoSalida)
             .query(`
                 UPDATE Asistencias 
-                SET HoraSalida = @hora, EstadoSalida = @estado
+                SET HoraSalida = CAST(@hora AS TIME), EstadoSalida = @estado
                 WHERE UsuarioID = @usuarioID AND Fecha = CAST(GETDATE() AS DATE) AND HoraSalida IS NULL
             `);
 

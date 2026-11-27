@@ -1,5 +1,5 @@
 const express = require('express');
-const sql = require('mssql/msnodesqlv8');
+const sql = require('mssql'); // <-- Cambiado para la nube
 const cors = require('cors');
 
 const app = express();
@@ -8,13 +8,13 @@ app.use(express.json());
 app.use(express.static('public'));
 
 const config = {
-    server: 'localhost',
-    database: 'LibreriaUniAsistencia',
-    driver: 'ODBC Driver 17 for SQL Server', 
+    server: 'LibreriaUniDB.mssql.somee.com',
+    database: 'LibreriaUniDB',
+    user: 'JosS_47_SQLLogin_1',
+    password: 'Libreria2026!', // <-- Pon la contraseña que pusiste en Somee
     options: {
-        trustedConnection: true,
-        trustServerCertificate: true,
-        encrypt: false
+        encrypt: false,
+        trustServerCertificate: true
     }
 };
 

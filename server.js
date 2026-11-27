@@ -37,50 +37,54 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// REGISTRAR ENTRADA
 app.post('/api/entrada', async (req, res) => {
     const { usuarioID, sucursalID, modoDemo } = req.body;
     try {
         const pool = await sql.connect(config);
         
-        // 1. Obtener el horario del empleado (Forzando formato de texto en SQL)
+        // 1. Obtener el horario oficial del empleado (como texto)
         const userResult = await pool.request()
             .input('id', sql.Int, usuarioID)
             .query("SELECT CONVERT(varchar, HoraEntrada, 108) AS HoraEntrada FROM Usuarios WHERE UsuarioID = @id");
         
         const horarioOficial = userResult.recordset[0].HoraEntrada;
         
-        // 2. Calcular hora límite (5 minutos de tolerancia)
+        // 2. Calcular la hora límite (5 min de tolerancia)
         let horaLimiteStr = '08:05:00'; 
         if (typeof horarioOficial === 'string') {
-            const [h, m, s] = horarioOficial.split(':');
+            const [h, m] = horarioOficial.split(':');
             const horaLimite = new Date();
             horaLimite.setHours(parseInt(h), parseInt(m) + 5, 0); 
             horaLimiteStr = horaLimite.toTimeString().split(' ')[0];
         }
 
-        // 3. Obtener hora (Modo Demo simula que llegó a tiempo)
+        // 3. Definir la hora del servidor (Simulada para la demo)
         let horaServidor;
         if (modoDemo) {
-            const horaSimulada = new Date();
-            // Si horarioOficial es string, simulamos que llegó 1 hora antes
             if (typeof horarioOficial === 'string') {
-                const [h, m, s] = horarioOficial.split(':');
-                horaSimulada.setHours(parseInt(h) - 1, 45, 0); 
+                const [h, m] = horarioOficial.split(':');
+                const horaSimulada = new Date();
+                horaSimulada.setHours(parseInt(h) - 1, 45, 0); // Llega 1 hora y 15 min antes
+                horaServidor = horaSimulada.toTimeString().split(' ')[0]; // Formato "HH:mm:ss"
+            } else {
+                horaServidor = '07:45:00'; // Respaldo por si falla
             }
-            horaServidor = horaSimulada.toTimeString().split(' ')[0];
         } else {
             const timeResult = await pool.request().query("SELECT FORMAT(GETDATE(), 'HH:mm:ss') as HoraActual");
             horaServidor = timeResult.recordset[0].HoraActual;
         }
 
-        // 4. Evaluar si es tardanza
+        // Asegurarnos de que horaServidor sea SIEMPRE un string
+        horaServidor = String(horaServidor);
+
+        // 4. Evaluar tardanza
         const estadoEntrada = horaServidor > horaLimiteStr ? 'Tardanza' : 'Puntual';
 
+        // 5. Guardar en SQL Server
         await pool.request()
             .input('usuarioID', sql.Int, usuarioID)
             .input('sucursalID', sql.Int, sucursalID)
-            .input('hora', sql.VarChar, horaServidor) // <-- CAMBIO AQUÍ
+            .input('hora', sql.VarChar, horaServidor) 
             .input('estado', sql.NVarChar, estadoEntrada)
             .query(`
                 INSERT INTO Asistencias (UsuarioID, SucursalID, Fecha, HoraEntrada, EstadoEntrada)
@@ -107,21 +111,26 @@ app.post('/api/salida', async (req, res) => {
         let horaServidor;
         if (modoDemo) {
             if (typeof horarioOficial === 'string') {
-                const [h, m, s] = horarioOficial.split(':');
+                const [h, m] = horarioOficial.split(':');
                 const horaSimulada = new Date();
-                horaSimulada.setHours(parseInt(h) + 1, 15, 0); // Simula salida 1 hora después
+                horaSimulada.setHours(parseInt(h) + 1, 15, 0); // Sale 1 hora después
                 horaServidor = horaSimulada.toTimeString().split(' ')[0];
+            } else {
+                horaServidor = '19:15:00';
             }
         } else {
             const timeResult = await pool.request().query("SELECT FORMAT(GETDATE(), 'HH:mm:ss') as HoraActual"); 
             horaServidor = timeResult.recordset[0].HoraActual;
         }
 
+        // Asegurarnos de que horaServidor sea SIEMPRE un string
+        horaServidor = String(horaServidor);
+
         const estadoSalida = horaServidor < horarioOficial ? 'Anticipada' : 'Normal';
 
-            const result = await pool.request()
+        const result = await pool.request()
             .input('usuarioID', sql.Int, usuarioID)
-            .input('hora', sql.VarChar, horaServidor) // <-- CAMBIO AQUÍ
+            .input('hora', sql.VarChar, horaServidor) 
             .input('estado', sql.NVarChar, estadoSalida)
             .query(`
                 UPDATE Asistencias 

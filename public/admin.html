@@ -4,34 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Dueña</title>
-    <link rel="manifest" href="/manifest.json">
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Nuestros estilos personalizados -->
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <!-- Barra de navegación con colores personalizados -->
+    <nav class="navbar navbar-dark navbar-custom mb-4">
         <div class="container-fluid">
-            <span class="navbar-brand">Librería Uni - Administración</span>
+            <span class="navbar-brand">Librería Uni - Admin</span>
             <button onclick="logout()" class="btn btn-outline-light btn-sm">Salir</button>
         </div>
     </nav>
+
     <div class="container">
-        <h3 class="mb-4">Panel de Asistencia Diario</h3>
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Empleado</th>
-                            <th>Sucursal</th>
-                            <th>Entrada</th>
-                            <th>Salida</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaDatos">
-                        <!-- Se llena con JS -->
-                    </tbody>
-                </table>
+        <h3 class="mb-4 fw-bold" style="color: var(--azul-principal);">Panel de Asistencia Diario</h3>
+        
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <!-- El contenedor table-responsive evita que la tabla se salga en celulares -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center">
+                        <thead class="table-dark" style="background-color: var(--negro);">
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Sucursal</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaDatos">
+                            <!-- Se llena con JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -47,15 +55,20 @@
             tbody.innerHTML = '';
             
             data.data.forEach(row => {
-                // Color rojo si hay tardanza
-                const color = row.EstadoEntrada === 'Tardanza' ? 'text-danger fw-bold' : 'text-success';
+                // Color verde para puntual, rojo para tardanza
+                const colorEstado = row.EstadoEntrada === 'Tardanza' ? 'text-danger fw-bold' : 'text-success fw-bold';
+                
+                // Formatear horas para que no se vean tan largas
+                const entrada = row.HoraEntrada ? row.HoraEntrada.substring(0, 5) : '--:--';
+                const salida = row.HoraSalida ? row.HoraSalida.substring(0, 5) : '--:--';
+
                 tbody.innerHTML += `
                     <tr>
-                        <td>${row.NombreCompleto}</td>
+                        <td class="fw-semibold">${row.NombreCompleto}</td>
                         <td>${row.Sucursal}</td>
-                        <td>${row.HoraEntrada || '--:--'}</td>
-                        <td>${row.HoraSalida || '--:--'}</td>
-                        <td class="${color}">${row.EstadoEntrada || 'Sin registro'}</td>
+                        <td>${entrada}</td>
+                        <td>${salida}</td>
+                        <td class="${colorEstado}">${row.EstadoEntrada}</td>
                     </tr>
                 `;
             });

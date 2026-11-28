@@ -4,40 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Dueña</title>
-    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Nuestros estilos personalizados -->
-    <link rel="stylesheet" href="/styles.css?v=3">
+    <style>
+        body { background-color: #f4f6f9; }
+        .navbar-custom { background-color: #1a1a1a; border-bottom: 3px solid #d4af37; }
+        .navbar-brand { color: #d4af37 !important; font-weight: bold; }
+    </style>
 </head>
-<body class="bg-light">
-    <!-- Barra de navegación con colores personalizados -->
+<body>
     <nav class="navbar navbar-dark navbar-custom mb-4">
-        <div class="container-fluid">
+        <div class="container-fluid justify-content-between">
             <span class="navbar-brand">Librería Uni - Admin</span>
             <button onclick="logout()" class="btn btn-outline-light btn-sm">Salir</button>
         </div>
     </nav>
 
     <div class="container">
-        <h3 class="mb-4 fw-bold" style="color: var(--azul-principal);">Panel de Asistencia Diario</h3>
-        
+        <h3 class="mb-4 fw-bold text-dark">Panel de Asistencia Diario</h3>
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
-                <!-- El contenedor table-responsive evita que la tabla se salga en celulares -->
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0 text-center">
-                        <thead class="table-dark" style="background-color: var(--negro);">
-                            <tr>
-                                <th>Empleado</th>
-                                <th>Sucursal</th>
-                                <th>Entrada</th>
-                                <th>Salida</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaDatos">
-                            <!-- Se llena con JS -->
-                        </tbody>
+                        <thead class="table-dark"><tr><th>Empleado</th><th>Sucursal</th><th>Entrada</th><th>Salida</th><th>Estado</th></tr></thead>
+                        <tbody id="tablaDatos"></tbody>
                     </table>
                 </div>
             </div>
@@ -55,31 +44,16 @@
             tbody.innerHTML = '';
             
             data.data.forEach(row => {
-                // Color verde para puntual, rojo para tardanza
-                const colorEstado = row.EstadoEntrada === 'Tardanza' ? 'text-danger fw-bold' : 'text-success fw-bold';
-                
-                // Formatear horas para que no se vean tan largas
+                const color = row.EstadoEntrada === 'Tardanza' ? 'text-danger fw-bold' : 'text-success fw-bold';
                 const entrada = row.HoraEntrada ? row.HoraEntrada.substring(0, 5) : '--:--';
                 const salida = row.HoraSalida ? row.HoraSalida.substring(0, 5) : '--:--';
-
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="fw-semibold">${row.NombreCompleto}</td>
-                        <td>${row.Sucursal}</td>
-                        <td>${entrada}</td>
-                        <td>${salida}</td>
-                        <td class="${colorEstado}">${row.EstadoEntrada}</td>
-                    </tr>
-                `;
+                tbody.innerHTML += `<tr><td class="fw-semibold">${row.NombreCompleto}</td><td>${row.Sucursal}</td><td>${entrada}</td><td>${salida}</td><td class="${color}">${row.EstadoEntrada}</td></tr>`;
             });
         }
         
-        function logout() {
-            localStorage.removeItem('usuario');
-            window.location.href = 'login.html';
-        }
-
+        function logout() { localStorage.removeItem('usuario'); window.location.href = 'login.html'; }
         cargarDatos();
+        setInterval(cargarDatos, 30000); // Actualiza cada 30 seg
     </script>
 </body>
 </html>

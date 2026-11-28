@@ -5,83 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Empleado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=3">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { background-color: #f4f6f9; }
+        .navbar-custom { background-color: #1a1a1a; border-bottom: 3px solid #d4af37; }
+        .navbar-brand { color: #d4af37 !important; font-weight: bold; }
+        .btn-verde { background-color: #198754; color: white; border: none; font-size: 1.2rem; padding: 20px; border-radius: 15px; transition: 0.3s; }
+        .btn-rojo { background-color: #dc3545; color: white; border: none; font-size: 1.2rem; padding: 20px; border-radius: 15px; transition: 0.3s; }
+        .btn-verde:hover, .btn-rojo:hover { transform: scale(1.02); }
+    </style>
 </head>
-<body class="bg-light">
-    <!-- Navbar oscuro con letras doradas -->
+<body>
     <nav class="navbar navbar-dark navbar-custom mb-4">
-        <div class="container-fluid justify-content-center">
+        <div class="container-fluid justify-content-between">
             <span class="navbar-brand mb-0 h1">Librería Uni</span>
+            <button onclick="abrirConfig()" class="btn btn-outline-light btn-sm">⚙️</button>
         </div>
     </nav>
 
     <div class="container text-center">
-        <h4 id="nombreUsuario" class="mb-4 fw-bold" style="color: var(--azul-principal);">Cargando...</h4>
+        <h4 id="nombreUsuario" class="mb-4 fw-bold text-dark">Cargando...</h4>
         
         <div class="card shadow-lg border-0 mx-auto" style="max-width: 400px; border-radius: 15px;">
             <div class="card-body p-4">
                 <h5 class="text-muted mb-4">Mi Asistencia de Hoy</h5>
                 <div class="d-grid gap-3">
-                    <!-- Botones grandes y claros -->
-                    <button onclick="marcar('entrada')" class="btn btn-success btn-lg p-4 fw-bold shadow-sm" style="border-radius: 10px;">MARCAR ENTRADA</button>
-                    <button onclick="marcar('salida')" class="btn btn-danger btn-lg p-4 fw-bold shadow-sm" style="border-radius: 10px;">MARCAR SALIDA</button>
+                    <button onclick="abrirEscaner('entrada')" class="btn btn-verde shadow-sm">📷 ESCANEAR QR (ENTRADA)</button>
+                    <button onclick="abrirEscaner('salida')" class="btn btn-rojo shadow-sm">📷 ESCANEAR QR (SALIDA)</button>
                 </div>
+                <div id="reader" style="width:100%; display:none; margin-top: 15px;"></div>
                 <div id="mensaje" class="mt-4"></div>
             </div>
         </div>
         
         <button onclick="logout()" class="btn btn-outline-dark mt-4 btn-sm">Cerrar Sesión</button>
-        <button onclick="cambiarPassword()" class="btn btn-outline-warning mt-4 btn-sm">Cambiar mi contraseña</button>
     </div>
 
+    <!-- Modal de Configuración -->
+    <div class="modal fade" id="modalConfig" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Configuración</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body text-center">
+                    <p><strong>Correo:</strong> <span id="cfg-correo"></span></p>
+                    <p><strong>DNI:</strong> <span id="cfg-dni"></span></p>
+                    <button onclick="cambiarPassword()" class="btn btn-warning w-100">Cambiar Contraseña</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const usuario = JSON.parse(localStorage.getItem('usuario'));
         if (!usuario || usuario.Rol !== 'Empleado') window.location.href = 'login.html';
         document.getElementById('nombreUsuario').innerText = `Hola, ${usuario.NombreCompleto}`;
+        
+        // Llenar configuración
+        document.getElementById('cfg-correo').innerText = usuario.CorreoGoogle;
+        document.getElementById('cfg-dni').innerText = usuario.DNI || 'No registrado';
 
-        async function marcar(tipo) {
+        let qrScanner = null;
+        let tipoRegistro = '';
+
+        function abrirConfig() {
+            new bootstrap.Modal(document.getElementById('modalConfig')).show();
+        }
+
+        function abrirEscaner(tipo) {
+            tipoRegistro = tipo;
+            document.getElementById('reader').style.display = 'block';
+            if (!qrScanner) qrScanner = new Html5Qrcode("reader");
+
+            qrScanner.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    qrScanner.stop().then(() => {
+                        document.getElementById('reader').style.display = 'none';
+                        procesarAsistencia(tipoRegistro, decodedText);
+                    });
+                }
+            ).catch(err => alert("Error cámara: " + err));
+        }
+
+        async function procesarAsistencia(tipo, qrLeido) {
             const res = await fetch(`/api/${tipo}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    usuarioID: usuario.UsuarioID, 
-                    sucursalID: usuario.SucursalID,
-                    modoDemo: true 
-                })
+                body: JSON.stringify({ usuarioID: usuario.UsuarioID, sucursalID: usuario.SucursalID, codigoQR: qrLeido, modoDemo: true })
             });
             const data = await res.json();
             if(data.ok) {
-                document.getElementById('mensaje').innerHTML = `
-                    <div class="alert alert-success fw-bold">
-                        ${data.mensaje}<br>
-                        Hora: ${data.hora}<br>
-                        Estado: ${data.estado}
-                    </div>`;
+                document.getElementById('mensaje').innerHTML = `<div class="alert alert-success">${data.mensaje} a las ${data.hora} (${data.estado})</div>`;
             } else {
-                document.getElementById('mensaje').innerHTML = `<div class="alert alert-danger fw-bold">Error: ${data.error}</div>`;
+                document.getElementById('mensaje').innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
             }
         }
 
-        function logout() {
-            localStorage.removeItem('usuario');
-            window.location.href = 'login.html';
-        }
-                async function cambiarPassword() {
+        async function cambiarPassword() {
             const actual = prompt("Ingresa tu contraseña actual:");
             if (!actual) return;
             const nueva = prompt("Ingresa tu NUEVA contraseña:");
             if (!nueva) return;
 
             const res = await fetch('/api/cambiar-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ correo: usuario.CorreoGoogle, passwordActual: actual, passwordNueva: nueva })
             });
             const data = await res.json();
-            
-            if (data.ok) alert(data.mensaje);
-            else alert("Error: " + data.error);
+            alert(data.ok ? data.mensaje : "Error: " + data.error);
         }
+
+        function logout() { localStorage.removeItem('usuario'); window.location.href = 'login.html'; }
     </script>
 </body>
 </html>

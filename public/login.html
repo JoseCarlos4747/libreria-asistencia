@@ -5,112 +5,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Librería Uni - Acceso</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        body { background-color: #1a1a1a !important; font-family: 'Segoe UI', sans-serif; }
-        .card-custom { border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
-        .titulo-dorado { color: #d4af37 !important; font-weight: bold; }
-        .btn-azul { background-color: #0d3b66 !important; color: white !important; border: none; }
-        .btn-azul:hover { background-color: #092a4a !important; }
-        .input-custom { border: 2px solid #0d3b66 !important; }
-        .nav-tabs .nav-link { color: white; border: none; }
-        .nav-tabs .nav-link.active { background-color: transparent; color: #d4af37; border-bottom: 3px solid #d4af37; font-weight: bold; }
+        body { background: linear-gradient(135deg, #1a1a1a 0%, #0d3b66 100%); min-height: 100vh; font-family: 'Segoe UI', sans-serif; color: white; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .titulo-dorado { color: #d4af37; font-weight: 700; letter-spacing: 2px; }
+        .form-control, .form-select { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; }
+        .form-control:focus, .form-select:focus { background: rgba(255,255,255,0.2); color: white; border-color: #d4af37; box-shadow: none; }
+        .form-control::placeholder { color: #ccc; }
+        .form-select option { color: #1a1a1a; }
+        .btn-dorado { background: #d4af37; color: #1a1a1a; font-weight: bold; border: none; transition: 0.3s; }
+        .btn-dorado:hover { background: #f1c40f; transform: scale(1.05); }
+        .nav-tabs .nav-link { color: white; border: none; font-weight: 600; }
+        .nav-tabs .nav-link.active { color: #d4af37; background: transparent; border-bottom: 3px solid #d4af37; }
     </style>
 </head>
-<body class="d-flex align-items-center" style="min-height: 100vh; padding: 20px 0;">
+<body class="d-flex align-items-center py-5">
     <div class="container">
-        <div class="card card-custom mx-auto" style="max-width: 450px;">
+        <div class="card glass-card mx-auto animate__animated animate__fadeInUp" style="max-width: 450px;">
             <div class="card-body p-4">
-                
-                <h3 class="text-center titulo-dorado mb-4">Librería Uni</h3>
+                <h2 class="text-center titulo-dorado mb-1">Librería Uni</h2>
+                <p class="text-center text-muted small mb-4">Sistema de Asistencia</p>
 
-                <!-- Pestañas -->
-                <ul class="nav nav-tabs justify-content-center mb-4" id="myTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button">Ingresar</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button">Crear Cuenta</button>
-                    </li>
+                <ul class="nav nav-tabs justify-content-center mb-4" id="myTab">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#login">Ingresar</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registro">Crear Cuenta</button></li>
                 </ul>
 
-                <div class="tab-content" id="myTabContent">
-                    <!-- Formulario de LOGIN -->
+                <div class="tab-content">
+                    <!-- LOGIN -->
                     <div class="tab-pane fade show active" id="login">
-                        <div class="mb-3">
-                            <input type="email" id="login-correo" class="form-control input-custom" placeholder="Correo Electrónico">
-                        </div>
-                        <div class="mb-4">
-                            <input type="password" id="login-password" class="form-control input-custom" placeholder="Contraseña">
-                        </div>
-                        <button onclick="login()" class="btn btn-azul w-100">Iniciar Sesión</button>
-                        <div id="login-error" class="text-danger small mt-3 text-center"></div>
+                        <input type="email" id="login-correo" class="form-control mb-3" placeholder="Correo Electrónico">
+                        <input type="password" id="login-password" class="form-control mb-3" placeholder="Contraseña">
+                        <button onclick="login()" class="btn btn-dorado w-100 py-2">Iniciar Sesión</button>
+                        <div id="login-error" class="text-danger small mt-2 text-center"></div>
                     </div>
 
-                    <!-- Formulario de REGISTRO (6 Campos) -->
+                    <!-- REGISTRO CON VALIDACIÓN -->
                     <div class="tab-pane fade" id="registro">
-                        <div class="mb-2"><input type="text" id="reg-nombre" class="form-control input-custom" placeholder="Nombre Completo"></div>
-                        <div class="mb-2"><input type="text" id="reg-dni" class="form-control input-custom" placeholder="DNI (8 dígitos)"></div>
-                        <div class="mb-2"><input type="email" id="reg-correo" class="form-control input-custom" placeholder="Correo Electrónico"></div>
-                        <div class="mb-2"><input type="password" id="reg-password" class="form-control input-custom" placeholder="Contraseña"></div>
-                        <div class="mb-2"><input type="text" id="reg-telefono" class="form-control input-custom" placeholder="Teléfono"></div>
-                        <div class="mb-4">
-                            <select id="reg-sucursal" class="form-select input-custom">
-                                <option value="">Seleccione Sucursal (Opcional)</option>
-                                <option value="1">Sucursal Centro</option>
-                                <option value="2">Sucursal Norte</option>
-                            </select>
-                        </div>
-                        <button onclick="registrar()" class="btn btn-azul w-100">Crear Cuenta</button>
-                        <div id="reg-mensaje" class="small mt-3 text-center"></div>
+                        <input type="text" id="reg-nombre" class="form-control mb-1" placeholder="Nombre Completo" oninput="validarTexto(this, 'err-nombre')">
+                        <div id="err-nombre" class="text-danger small mb-2"></div>
+                        
+                        <input type="text" id="reg-dni" class="form-control mb-1" placeholder="DNI (8 números)" maxlength="8" oninput="validarNumero(this, 'err-dni', 8)">
+                        <div id="err-dni" class="text-danger small mb-2"></div>
+                        
+                        <input type="email" id="reg-correo" class="form-control mb-1" placeholder="Correo Electrónico" oninput="validarCorreo(this, 'err-correo')">
+                        <div id="err-correo" class="text-danger small mb-2"></div>
+                        
+                        <input type="password" id="reg-password" class="form-control mb-1" placeholder="Contraseña (mín 6)" oninput="validarPassword(this, 'err-pass')">
+                        <div id="err-pass" class="text-danger small mb-2"></div>
+                        
+                        <input type="text" id="reg-telefono" class="form-control mb-1" placeholder="Teléfono (9 números)" maxlength="9" oninput="validarNumero(this, 'err-tel', 9)">
+                        <div id="err-tel" class="text-danger small mb-2"></div>
+                        
+                        <select id="reg-sucursal" class="form-select mb-3">
+                            <option value="">Seleccione Tienda</option>
+                            <option value="1">Tienda 1</option>
+                            <option value="2">Tienda 2</option>
+                            <option value="3">Tienda 3</option>
+                            <option value="4">Tienda 4</option>
+                            <option value="5">Tienda 5</option>
+                            <option value="6">Tienda 6</option>
+                        </select>
+
+                        <button onclick="registrar()" class="btn btn-dorado w-100 py-2">Crear Cuenta</button>
+                        <div id="reg-mensaje" class="small mt-2 text-center"></div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function validarTexto(input, errId) {
+            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+            const err = document.getElementById(errId);
+            if (!regex.test(input.value)) { err.innerText = "Solo letras."; input.style.borderColor = "red"; }
+            else { err.innerText = ""; input.style.borderColor = "rgba(255,255,255,0.2)"; }
+        }
+        function validarNumero(input, errId, length) {
+            const regex = /^\d+$/;
+            const err = document.getElementById(errId);
+            if (!regex.test(input.value) || input.value.length !== length) { err.innerText = `Exactamente ${length} números.`; input.style.borderColor = "red"; }
+            else { err.innerText = ""; input.style.borderColor = "rgba(255,255,255,0.2)"; }
+        }
+        function validarCorreo(input, errId) {
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const err = document.getElementById(errId);
+            if (!regex.test(input.value)) { err.innerText = "Correo no válido."; input.style.borderColor = "red"; }
+            else { err.innerText = ""; input.style.borderColor = "rgba(255,255,255,0.2)"; }
+        }
+        function validarPassword(input, errId) {
+            const err = document.getElementById(errId);
+            if (input.value.length < 6) { err.innerText = "Mínimo 6 caracteres."; input.style.borderColor = "red"; }
+            else { err.innerText = ""; input.style.borderColor = "rgba(255,255,255,0.2)"; }
+        }
+
         async function login() {
             const correo = document.getElementById('login-correo').value;
             const password = document.getElementById('login-password').value;
             const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ correo, password })
             });
             const data = await res.json();
             if (data.ok) {
                 localStorage.setItem('usuario', JSON.stringify(data.usuario));
                 window.location.href = data.usuario.Rol === 'Administradora' ? 'admin.html' : 'empleado.html';
-            } else {
-                document.getElementById('login-error').innerText = data.error;
-            }
+            } else { document.getElementById('login-error').innerText = data.error; }
         }
 
         async function registrar() {
+            const errores = document.querySelectorAll('.text-danger');
+            let hayError = false;
+            errores.forEach(e => { if(e.innerText !== "") hayError = true; });
+            if(hayError) return alert("Corrige los errores en rojo.");
+
             const nombre = document.getElementById('reg-nombre').value;
             const dni = document.getElementById('reg-dni').value;
             const correo = document.getElementById('reg-correo').value;
             const password = document.getElementById('reg-password').value;
             const telefono = document.getElementById('reg-telefono').value;
             const sucursalID = document.getElementById('reg-sucursal').value;
-            const rol = 'Empleado'; // Por defecto, empleado
-
+            
             const res = await fetch('/api/registro', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, dni, correo, password, telefono, sucursalID, rol })
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, dni, correo, password, telefono, sucursalID, rol: 'Empleado' })
             });
             const data = await res.json();
-            
             const msj = document.getElementById('reg-mensaje');
             if (data.ok) {
-                msj.className = "text-success small mt-3 text-center fw-bold";
+                msj.className = "text-success small mt-2 text-center fw-bold";
                 msj.innerText = data.mensaje;
-                setTimeout(() => document.getElementById('login-tab').click(), 2000); // Pasa a login tras 2s
+                setTimeout(() => document.querySelector('[data-bs-target="#login"]').click(), 2000);
             } else {
-                msj.className = "text-danger small mt-3 text-center fw-bold";
+                msj.className = "text-danger small mt-2 text-center fw-bold";
                 msj.innerText = data.error;
             }
         }

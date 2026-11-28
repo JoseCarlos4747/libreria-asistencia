@@ -63,11 +63,13 @@ app.post('/api/entrada', async (req, res) => {
         const pool = await sql.connect(config);
         
         // Validar QR
-                if (sucursalInfo.recordset.length > 0) {
+            if (sucursalInfo.recordset.length > 0) {
             const qrOficial = sucursalInfo.recordset[0].CodigoQR;
-            if (qrOficial && codigoQR !== qrOficial) {
-                // ESTO ES TEMPORAL PARA VER QUÉ ESTÁ LEYENDO LA CÁMARA
-                return res.status(400).json({ ok: false, error: `El QR dice: "${codigoQR}" pero se esperaba: "${qrOficial}"` });
+            if (qrOficial && codigoQR.trim() !== qrOficial.trim()) { // Usamos .trim() por si hay espacios
+                return res.status(400).json({ 
+                    ok: false, 
+                    error: `Fallo. Cámara leyó: "${codigoQR}" | BD espera: "${qrOficial}"` 
+                });
             }
         }
 

@@ -3,44 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Librería Uni - Login</title>
+    <title>Librería Uni - Acceso</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body { background-color: #1a1a1a !important; font-family: 'Segoe UI', sans-serif; }
+        .card-custom { border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
+        .titulo-dorado { color: #d4af37 !important; font-weight: bold; }
+        .btn-azul { background-color: #0d3b66 !important; color: white !important; border: none; }
+        .btn-azul:hover { background-color: #092a4a !important; }
+        .input-custom { border: 2px solid #0d3b66 !important; }
+        .nav-tabs .nav-link { color: white; border: none; }
+        .nav-tabs .nav-link.active { background-color: transparent; color: #d4af37; border-bottom: 3px solid #d4af37; font-weight: bold; }
+    </style>
 </head>
-<body class="d-flex align-items-center" style="height: 100vh; background-color: var(--negro);">
+<body class="d-flex align-items-center" style="min-height: 100vh; padding: 20px 0;">
     <div class="container">
-        <div class="card shadow-lg border-0" style="border-radius: 15px;">
-            <div class="card-body p-5 text-center">
-                <!-- Título con color dorado -->
-                <h2 class="mb-4 fw-bold" style="color: var(--dorado);">Librería Uni</h2>
-                <p class="text-muted mb-4">Ingresa tu correo para marcar asistencia</p>
+        <div class="card card-custom mx-auto" style="max-width: 450px;">
+            <div class="card-body p-4">
                 
-                <input type="email" id="correo" class="form-control form-control-lg mb-4" placeholder="ejemplo@gmail.com" style="border: 2px solid var(--azul-principal);">
-                
-                <button onclick="login()" class="btn btn-primary-custom btn-lg w-100 mb-3">Ingresar</button>
-                
-                <div id="error" class="text-danger small fw-bold"></div>
+                <h3 class="text-center titulo-dorado mb-4">Librería Uni</h3>
+
+                <!-- Pestañas -->
+                <ul class="nav nav-tabs justify-content-center mb-4" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button">Ingresar</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button">Crear Cuenta</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="myTabContent">
+                    <!-- Formulario de LOGIN -->
+                    <div class="tab-pane fade show active" id="login">
+                        <div class="mb-3">
+                            <input type="email" id="login-correo" class="form-control input-custom" placeholder="Correo Electrónico">
+                        </div>
+                        <div class="mb-4">
+                            <input type="password" id="login-password" class="form-control input-custom" placeholder="Contraseña">
+                        </div>
+                        <button onclick="login()" class="btn btn-azul w-100">Iniciar Sesión</button>
+                        <div id="login-error" class="text-danger small mt-3 text-center"></div>
+                    </div>
+
+                    <!-- Formulario de REGISTRO (6 Campos) -->
+                    <div class="tab-pane fade" id="registro">
+                        <div class="mb-2"><input type="text" id="reg-nombre" class="form-control input-custom" placeholder="Nombre Completo"></div>
+                        <div class="mb-2"><input type="text" id="reg-dni" class="form-control input-custom" placeholder="DNI (8 dígitos)"></div>
+                        <div class="mb-2"><input type="email" id="reg-correo" class="form-control input-custom" placeholder="Correo Electrónico"></div>
+                        <div class="mb-2"><input type="password" id="reg-password" class="form-control input-custom" placeholder="Contraseña"></div>
+                        <div class="mb-2"><input type="text" id="reg-telefono" class="form-control input-custom" placeholder="Teléfono"></div>
+                        <div class="mb-4">
+                            <select id="reg-sucursal" class="form-select input-custom">
+                                <option value="">Seleccione Sucursal (Opcional)</option>
+                                <option value="1">Sucursal Centro</option>
+                                <option value="2">Sucursal Norte</option>
+                            </select>
+                        </div>
+                        <button onclick="registrar()" class="btn btn-azul w-100">Crear Cuenta</button>
+                        <div id="reg-mensaje" class="small mt-3 text-center"></div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         async function login() {
-            const correo = document.getElementById('correo').value;
+            const correo = document.getElementById('login-correo').value;
+            const password = document.getElementById('login-password').value;
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ correo })
+                body: JSON.stringify({ correo, password })
             });
             const data = await res.json();
             if (data.ok) {
                 localStorage.setItem('usuario', JSON.stringify(data.usuario));
-                if (data.usuario.Rol === 'Administradora') {
-                    window.location.href = 'admin.html';
-                } else {
-                    window.location.href = 'empleado.html';
-                }
+                window.location.href = data.usuario.Rol === 'Administradora' ? 'admin.html' : 'empleado.html';
             } else {
-                document.getElementById('error').innerText = data.error;
+                document.getElementById('login-error').innerText = data.error;
+            }
+        }
+
+        async function registrar() {
+            const nombre = document.getElementById('reg-nombre').value;
+            const dni = document.getElementById('reg-dni').value;
+            const correo = document.getElementById('reg-correo').value;
+            const password = document.getElementById('reg-password').value;
+            const telefono = document.getElementById('reg-telefono').value;
+            const sucursalID = document.getElementById('reg-sucursal').value;
+            const rol = 'Empleado'; // Por defecto, empleado
+
+            const res = await fetch('/api/registro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, dni, correo, password, telefono, sucursalID, rol })
+            });
+            const data = await res.json();
+            
+            const msj = document.getElementById('reg-mensaje');
+            if (data.ok) {
+                msj.className = "text-success small mt-3 text-center fw-bold";
+                msj.innerText = data.mensaje;
+                setTimeout(() => document.getElementById('login-tab').click(), 2000); // Pasa a login tras 2s
+            } else {
+                msj.className = "text-danger small mt-3 text-center fw-bold";
+                msj.innerText = data.error;
             }
         }
     </script>

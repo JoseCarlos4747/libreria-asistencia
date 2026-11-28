@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Empleado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css?v=3">
 </head>
 <body class="bg-light">
     <!-- Navbar oscuro con letras doradas -->
@@ -31,6 +31,7 @@
         </div>
         
         <button onclick="logout()" class="btn btn-outline-dark mt-4 btn-sm">Cerrar Sesión</button>
+        <button onclick="cambiarPassword()" class="btn btn-outline-warning mt-4 btn-sm">Cambiar mi contraseña</button>
     </div>
 
     <script>
@@ -64,6 +65,22 @@
         function logout() {
             localStorage.removeItem('usuario');
             window.location.href = 'login.html';
+        }
+                async function cambiarPassword() {
+            const actual = prompt("Ingresa tu contraseña actual:");
+            if (!actual) return;
+            const nueva = prompt("Ingresa tu NUEVA contraseña:");
+            if (!nueva) return;
+
+            const res = await fetch('/api/cambiar-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ correo: usuario.CorreoGoogle, passwordActual: actual, passwordNueva: nueva })
+            });
+            const data = await res.json();
+            
+            if (data.ok) alert(data.mensaje);
+            else alert("Error: " + data.error);
         }
     </script>
 </body>

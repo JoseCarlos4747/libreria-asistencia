@@ -1,5 +1,5 @@
 const express = require('express');
-const sql = require('mssql'); // <-- Cambiado para la nube
+const sql = require('mssql');
 const cors = require('cors');
 
 const app = express();
@@ -7,49 +7,121 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Configuración de la base de datos en Somee (Nube)
 const config = {
     server: 'LibreriaUniDB.mssql.somee.com',
     database: 'LibreriaUniDB',
     user: 'JosS_47_SQLLogin_1',
-    password: 'Libreria2026!', // <-- Pon la contraseña que pusiste en Somee
+    password: 'Libreria2026!', // <-- Pon tu contraseña real de Somee si la cambiaste
     options: {
         encrypt: false,
         trustServerCertificate: true
     }
 };
 
-// LOGIN
+// ==========================================
+// 1. AUTENTICACIÓN Y USUARIOS
+// ==========================================
+
+// Registro de usuario (6 campos)
+app.post('/api/registro', async (req, res) => {
+    const { nombre, dni, correo, password, telefono, sucursalID, rol } = req.body;
+    try {
+        const pool = await sql.connect(config);
+        
+        // Validar si el correo ya existe
+        const check = await pool.request()
+            .input('correo', sql.NVarChar, correo)
+            .query('SELECT * FROM Usuarios WHERE CorreoGoogle = @correo');
+            
+        if (check.recordset.length > 0) {
+            return res.status(400).json({ ok: false, error: 'Este correo ya está registrado.' });
+        }
+
+        const rolFinal = rol || 'Empleado';
+        const sucursalFinal = sucursalID ? parseInt(sucursalID) : null;
+
+        await pool.request()
+            .input('nombre', sql.NVarChar, nombre)
+            .input('dni', sql.VarChar, dni)
+            .input('correo', sql.NVarChar, correo)
+            .input('password', sql.NVarChar, password)
+            .input('telefono', sql.VarChar, telefono)
+            .input('rol', sql.NVarChar, rolFinal)
+            .input('sucursalID', sql.Int, sucursalFinal)
+            .query(`
+                INSERT INTO Usuarios (NombreCompleto, DNI, CorreoGoogle, Password, Telefono, Rol, SucursalID)
+                VALUES (@nombre, @dni, @correo, @password, @telefono, @rol, @sucursalID)
+            `);
+
+        res.json({ ok: true, mensaje: 'Cuenta creada exitosamente. Ya puedes iniciar sesión.' });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Login (Correo y Contraseña)
 app.post('/api/login', async (req, res) => {
-    const { correo } = req.body;
+    const { correo, password } = req.body;
     try {
         const pool = await sql.connect(config);
         const result = await pool.request()
             .input('correo', sql.NVarChar, correo)
-            .query('SELECT * FROM Usuarios WHERE CorreoGoogle = @correo');
+            .input('password', sql.NVarChar, password)
+            .query('SELECT * FROM Usuarios WHERE CorreoGoogle = @correo AND Password = @password');
         
         if (result.recordset.length > 0) {
             res.json({ ok: true, usuario: result.recordset[0] });
         } else {
-            res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+            res.status(401).json({ ok: false, error: 'Correo o contraseña incorrectos' });
         }
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }
 });
 
+// Cambiar Contraseña
+app.post('/api/cambiar-password', async (req, res) => {
+    const { correo, passwordActual, passwordNueva } = req.body;
+    try {
+        const pool = await sql.connect(config);
+        
+        const check = await pool.request()
+            .input('correo', sql.NVarChar, correo)
+            .input('passwordActual', sql.NVarChar, passwordActual)
+            .query('SELECT * FROM Usuarios WHERE CorreoGoogle = @correo AND Password = @passwordActual');
+            
+        if (check.recordset.length === 0) {
+            return res.status(401).json({ ok: false, error: 'La contraseña actual es incorrecta.' });
+        }
+
+        await pool.request()
+            .input('correo', sql.NVarChar, correo)
+            .input('passwordNueva', sql.NVarChar, passwordNueva)
+            .query('UPDATE Usuarios SET Password = @passwordNueva WHERE CorreoGoogle = @correo');
+
+        res.json({ ok: true, mensaje: 'Contraseña actualizada correctamente.' });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// ==========================================
+// 2. ASISTENCIAS (ENTRADA Y SALIDA)
+// ==========================================
+
+// Registrar Entrada
 app.post('/api/entrada', async (req, res) => {
     const { usuarioID, sucursalID, modoDemo } = req.body;
     try {
         const pool = await sql.connect(config);
         
-        // 1. Obtener el horario oficial del empleado (como texto)
         const userResult = await pool.request()
             .input('id', sql.Int, usuarioID)
             .query("SELECT CONVERT(varchar, HoraEntrada, 108) AS HoraEntrada FROM Usuarios WHERE UsuarioID = @id");
         
         const horarioOficial = userResult.recordset[0].HoraEntrada;
         
-        // 2. Calcular la hora límite (5 min de tolerancia)
         let horaLimiteStr = '08:05:00'; 
         if (typeof horarioOficial === 'string') {
             const [h, m] = horarioOficial.split(':');
@@ -58,29 +130,24 @@ app.post('/api/entrada', async (req, res) => {
             horaLimiteStr = horaLimite.toTimeString().split(' ')[0];
         }
 
-        // 3. Definir la hora del servidor (Simulada para la demo)
         let horaServidor;
         if (modoDemo) {
             if (typeof horarioOficial === 'string') {
                 const [h, m] = horarioOficial.split(':');
                 const horaSimulada = new Date();
-                horaSimulada.setHours(parseInt(h) - 1, 45, 0); // Llega 1 hora y 15 min antes
-                horaServidor = horaSimulada.toTimeString().split(' ')[0]; // Formato "HH:mm:ss"
+                horaSimulada.setHours(parseInt(h) - 1, 45, 0); 
+                horaServidor = horaSimulada.toTimeString().split(' ')[0];
             } else {
-                horaServidor = '07:45:00'; // Respaldo por si falla
+                horaServidor = '07:45:00';
             }
         } else {
             const timeResult = await pool.request().query("SELECT FORMAT(GETDATE(), 'HH:mm:ss') as HoraActual");
             horaServidor = timeResult.recordset[0].HoraActual;
         }
 
-        // Asegurarnos de que horaServidor sea SIEMPRE un string
         horaServidor = String(horaServidor);
-
-        // 4. Evaluar tardanza
         const estadoEntrada = horaServidor > horaLimiteStr ? 'Tardanza' : 'Puntual';
 
-        // 5. Guardar en SQL Server
         await pool.request()
             .input('usuarioID', sql.Int, usuarioID)
             .input('sucursalID', sql.Int, sucursalID)
@@ -97,7 +164,7 @@ app.post('/api/entrada', async (req, res) => {
     }
 });
 
-// REGISTRAR SALIDA
+// Registrar Salida
 app.post('/api/salida', async (req, res) => {
     const { usuarioID, modoDemo } = req.body;
     try {
@@ -113,7 +180,7 @@ app.post('/api/salida', async (req, res) => {
             if (typeof horarioOficial === 'string') {
                 const [h, m] = horarioOficial.split(':');
                 const horaSimulada = new Date();
-                horaSimulada.setHours(parseInt(h) + 1, 15, 0); // Sale 1 hora después
+                horaSimulada.setHours(parseInt(h) + 1, 15, 0);
                 horaServidor = horaSimulada.toTimeString().split(' ')[0];
             } else {
                 horaServidor = '19:15:00';
@@ -123,9 +190,7 @@ app.post('/api/salida', async (req, res) => {
             horaServidor = timeResult.recordset[0].HoraActual;
         }
 
-        // Asegurarnos de que horaServidor sea SIEMPRE un string
         horaServidor = String(horaServidor);
-
         const estadoSalida = horaServidor < horarioOficial ? 'Anticipada' : 'Normal';
 
         const result = await pool.request()
@@ -148,7 +213,10 @@ app.post('/api/salida', async (req, res) => {
     }
 });
 
-// PANEL DE LA DUEÑA
+// ==========================================
+// 3. PANEL DE LA DUEÑA
+// ==========================================
+
 app.get('/api/panel', async (req, res) => {
     try {
         const pool = await sql.connect(config);
@@ -171,4 +239,6 @@ app.get('/api/panel', async (req, res) => {
     }
 });
 
-app.listen(3000, '0.0.0.0', () => console.log('Servidor en http://localhost:3000'));
+// Iniciar Servidor
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0', () => console.log(`Servidor en puerto ${port}`));

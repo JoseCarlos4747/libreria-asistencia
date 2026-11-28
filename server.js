@@ -63,9 +63,12 @@ app.post('/api/entrada', async (req, res) => {
         const pool = await sql.connect(config);
         
         // Validar QR
-        const sucInfo = await pool.request().input('sucID', sql.Int, sucursalID).query('SELECT CodigoQR FROM Sucursales WHERE SucursalID = @sucID');
-        if (sucInfo.recordset.length > 0 && sucInfo.recordset[0].CodigoQR && sucInfo.recordset[0].CodigoQR !== codigoQR) {
-            return res.status(400).json({ ok: false, error: 'El QR no pertenece a tu tienda.' });
+                if (sucursalInfo.recordset.length > 0) {
+            const qrOficial = sucursalInfo.recordset[0].CodigoQR;
+            if (qrOficial && codigoQR !== qrOficial) {
+                // ESTO ES TEMPORAL PARA VER QUÉ ESTÁ LEYENDO LA CÁMARA
+                return res.status(400).json({ ok: false, error: `El QR dice: "${codigoQR}" pero se esperaba: "${qrOficial}"` });
+            }
         }
 
         const userResult = await pool.request().input('id', sql.Int, usuarioID).query("SELECT CONVERT(varchar, HoraEntrada, 108) AS HoraEntrada FROM Usuarios WHERE UsuarioID = @id");

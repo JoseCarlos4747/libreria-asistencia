@@ -1,0 +1,41 @@
+/* Colores y Estilos Globales */
+:root {
+    --azul-principal: #0d3b66; /* Azul oscuro elegante */
+    --dorado: #d4af37;         /* Dorado */
+    --negro: #1a1a1a;
+    --blanco: #ffffff;
+}
+
+body {
+    background-color: #f4f6f9; /* Un gris muy clarito para que resalte el blanco */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Estilos del Navbar (Barra superior) */
+.navbar-custom {
+    background-color: var(--negro) !important;
+    border-bottom: 3px solid var(--dorado); /* Línea dorada abajo */
+}
+.navbar-custom .navbar-brand {
+    color: var(--dorado) !important;
+    font-weight: bold;
+}
+
+/* Botones personalizados */
+.btn-primary-custom {
+    background-color: var(--azul-principal);
+    color: var(--blanco);
+    border: none;
+}
+.btn-primary-custom:hover {
+    background-color: #092a4a;
+    color: var(--blanco);
+}
+
+/* Arreglo para que la tabla no se salga en celulares */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto; /* Permite hacer scroll horizontal solo en la tabla si es necesario */
+    -webkit-overflow-scrolling: touch;
+}

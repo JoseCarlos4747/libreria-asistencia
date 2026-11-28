@@ -116,11 +116,19 @@
             } else { document.getElementById('login-error').innerText = data.error; }
         }
 
-        async function registrar() {
-            const errores = document.querySelectorAll('.text-danger');
+                async function registrar() {
+            // Validar SOLO los mensajes de error del formulario de registro
             let hayError = false;
-            errores.forEach(e => { if(e.innerText !== "") hayError = true; });
-            if(hayError) return alert("Corrige los errores en rojo.");
+            const camposError = ['err-nombre', 'err-dni', 'err-correo', 'err-pass', 'err-tel'];
+            
+            camposError.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.innerText !== "") {
+                    hayError = true;
+                }
+            });
+
+            if(hayError) return alert("Corrige los errores en rojo antes de continuar.");
 
             const nombre = document.getElementById('reg-nombre').value;
             const dni = document.getElementById('reg-dni').value;
@@ -129,6 +137,9 @@
             const telefono = document.getElementById('reg-telefono').value;
             const sucursalID = document.getElementById('reg-sucursal').value;
             
+            // Validación extra: que no haya campos vacíos obligatorios
+            if (!sucursalID) return alert("Por favor, selecciona una tienda.");
+
             const res = await fetch('/api/registro', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nombre, dni, correo, password, telefono, sucursalID, rol: 'Empleado' })
